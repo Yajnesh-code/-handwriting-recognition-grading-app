@@ -1,0 +1,43 @@
+# Allow git files
+!.gitignore
+
+# Ignore everything by default
+*
+
+# Allow backend folder
+!backend/
+!backend/**
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+backend/venv/
+
+# ML models
+*.keras
+*.h5
+*.pt
+*.onnx
+
+# Runtime files
+backend/debug_crops/
+backend/results/
+backend/students/
+backend/static/uploads/
+
+# Generated files
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+backend/instance/
+*.db
