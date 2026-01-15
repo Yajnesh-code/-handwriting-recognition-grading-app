@@ -3,6 +3,7 @@ import cv2
 import json
 import numpy as np
 import tensorflow as tf
+import requests
 
 # =====================================================
 # BASE DIRECTORY (CRITICAL FOR CLOUD)
@@ -29,6 +30,34 @@ os.makedirs(ANSWER_KEY_DIR, exist_ok=True)
 
 DIGIT_CLASS_NAMES = [str(i) for i in range(10)]
 LETTER_CLASS_NAMES = ['A', 'B', 'C', 'D']
+
+# =====================================================
+# DOWNLOAD MODEL IF NOT PRESENT (GITHUB RELEASE SAFE)
+# =====================================================
+def ensure_model(path, url):
+    if not os.path.exists(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        print(f"Downloading model: {path}")
+        r = requests.get(url, stream=True)
+        r.raise_for_status()
+        with open(path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        print(f"Model downloaded: {path}")
+
+# =====================================================
+# ENSURE MODELS EXIST (DOWNLOAD ON FIRST RUN)
+# =====================================================
+ensure_model(
+    DIGITS_MODEL_PATH,
+    "https://github.com/Yajnesh-code/-handwriting-recognition-grading-app/releases/download/v1.0/digits_model_experiment_1.keras"
+)
+
+ensure_model(
+    LETTERS_MODEL_PATH,
+    "https://github.com/Yajnesh-code/-handwriting-recognition-grading-app/releases/download/v1.0/emnist_a_to_d_robust_classifier.keras"
+)
 
 # =====================================================
 # LAZY MODEL LOADING (RENDER-SAFE)
@@ -113,7 +142,7 @@ def two_cluster_x(centers_x, iters=8):
     ) else ~assign
 
 # =====================================================
-# MAIN PROCESSING FUNCTION
+# MAIN PROCESSING FUNCTION (UNCHANGED LOGIC)
 # =====================================================
 def process_mcq_image(PAGE_IMAGE_PATH, exam_code):
     load_models()
