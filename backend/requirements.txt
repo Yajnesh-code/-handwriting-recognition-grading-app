@@ -1,32 +1,9 @@
-# Python
-__pycache__/
-*.pyc
+flask
+flask-cors
+flask-sqlalchemy
+gunicorn
 
-# Virtual environment
-venv/
-
-# ML models (VERY LARGE)
-*.keras
-*.h5
-*.pt
-*.onnx
-backend/models/*.keras
-
-# Images & debug outputs
-debug_crops/
-*.png
-*.jpg
-*.jpeg
-
-# Generated results
-results/
-students/
-
-# Uploads & static generated files
-static/uploads/
-static/*.xlsx
-static/*.pdf
-
-# OS files
-.DS_Store
-Thumbs.db
+numpy
+opencv-python
+tensorflow
+reportlab
