@@ -1,43 +1,64 @@
-# Allow git files
+# ===============================
+# Allow git control file
+# ===============================
 !.gitignore
 
+# ===============================
 # Ignore everything by default
+# ===============================
 *
 
-# Allow backend folder
+# ===============================
+# Allow backend source code
+# ===============================
 !backend/
 !backend/**
 
-# Python
-__pycache__/
-*.pyc
+# ===============================
+# Ignore Python cache (inside backend)
+# ===============================
+backend/**/__pycache__/
+backend/**/*.pyc
 
-# Virtual env
+# ===============================
+# Virtual environment
+# ===============================
 backend/venv/
 
-# ML models
+# ===============================
+# ML models (VERY LARGE)
+# ===============================
 *.keras
 *.h5
 *.pt
 *.onnx
 
-# Runtime files
+# ===============================
+# Runtime / generated folders
+# ===============================
 backend/debug_crops/
 backend/results/
 backend/students/
+backend/uploads/
+backend/instance/
+
+# ===============================
+# Generated static files
+# ===============================
 backend/static/uploads/
+backend/static/*.png
+backend/static/*.jpg
+backend/static/*.jpeg
+backend/static/*.pdf
+backend/static/*.xlsx
 
-# Generated files
-*.png
-*.jpg
-*.jpeg
-*.pdf
-*.xlsx
+# ===============================
+# Database
+# ===============================
+*.db
 
-# OS
+# ===============================
+# OS files
+# ===============================
 .DS_Store
 Thumbs.db
-
-# Database
-backend/instance/
-*.db
