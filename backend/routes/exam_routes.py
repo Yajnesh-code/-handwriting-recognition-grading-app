@@ -94,3 +94,18 @@ def get_key(exam_code):
         return jsonify({"answer_key": {}}), 200
 
     return jsonify({"answer_key": key_doc["answer_key"]}), 200
+
+# =====================================================
+# ✅ CHECK IF EXAM EXISTS
+# =====================================================
+@exam.get("/exists/<exam_code>")
+def exam_exists(exam_code):
+    exam_code = exam_code.upper().strip()
+
+    exam_obj = db.exams.find_one({"exam_code": exam_code})
+
+    if not exam_obj:
+        return jsonify({"exists": False}), 404
+
+    return jsonify({"exists": True}), 200
+

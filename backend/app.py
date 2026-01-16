@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-import json
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -17,7 +16,6 @@ from routes.exam_routes import exam
 from routes.result_routes import result
 
 from flask_cors import CORS
-
 
 # =====================================================
 # BASE DIRECTORY
@@ -89,12 +87,16 @@ def grade_exam():
     if "error" in results:
         return jsonify(results), 400
 
+    # ✅ ATTACH METADATA
     results["usn"] = usn
     results["exam_code"] = exam_code
-    results["answer_key"] = key_doc["answers"]
+
+    # ✅ FIXED FIELD NAME (CRITICAL FIX)
+    results["answer_key"] = key_doc["answer_key"]
+
     results["timestamp"] = datetime.utcnow()
 
-    # ✅ SAVE RESULT TO MONGODB (IMPORTANT)
+    # ✅ SAVE RESULT TO MONGODB
     db.results.replace_one(
         {"usn": usn, "exam_code": exam_code},
         results,
