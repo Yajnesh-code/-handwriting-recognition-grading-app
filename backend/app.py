@@ -34,24 +34,15 @@ app = Flask(__name__)
 CORS(app)
 
 # =====================================================
-# DATABASE CONFIG (LOCAL SQLite + Render PostgreSQL)
+# DATABASE CONFIG (CLOUD-SAFE SQLITE)
 # =====================================================
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if DATABASE_URL:
-    # Render / Cloud (PostgreSQL)
-    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
-else:
-    # Local development (SQLite)
-    db_path = os.path.join(BASE_DIR, "mcq_system.db")
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
-
+db_path = os.path.join(BASE_DIR, "mcq_system.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 with app.app_context():
     db.create_all()
-
 
 # =====================================================
 # BLUEPRINTS
