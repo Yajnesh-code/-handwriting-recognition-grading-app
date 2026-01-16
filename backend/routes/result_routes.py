@@ -1,20 +1,37 @@
+# backend/routes/result_routes.py
+
 from flask import Blueprint, jsonify, request, send_file
 from database import db
-from datetime import datetime
+from utils.jwt_manager import decode_token
 import pandas as pd
 import os
 
 result = Blueprint("result", __name__)
 
 # =====================================================
-# ✅ 1) Get ALL results of a student
+# AUTH HELPER
+# =====================================================
+def auth_required(req):
+    token = req.headers.get("Authorization", "").replace("Bearer ", "")
+    try:
+        return decode_token(token)["teacher_id"]
+    except:
+        return None
+
+
+# =====================================================
+# ✅ 1) GET ALL RESULTS OF A STUDENT (TEACHER SAFE)
 # =====================================================
 @result.get("/student/<usn>")
 def get_student_results(usn):
+    teacher_id = auth_required(request)
+    if not teacher_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
     usn = usn.strip().upper()
 
     rows = list(db.results.find(
-        {"usn": usn},
+        {"usn": usn, "teacher_id": teacher_id},
         {"_id": 0}
     ))
 
@@ -22,15 +39,23 @@ def get_student_results(usn):
 
 
 # =====================================================
-# ✅ 2) Get ONE exam result of a student
+# ✅ 2) GET ONE EXAM RESULT OF A STUDENT
 # =====================================================
 @result.get("/student/<usn>/<exam_code>")
 def get_student_exam_result(usn, exam_code):
+    teacher_id = auth_required(request)
+    if not teacher_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
     usn = usn.strip().upper()
     exam_code = exam_code.strip().upper()
 
     data = db.results.find_one(
-        {"usn": usn, "exam_code": exam_code},
+        {
+            "usn": usn,
+            "exam_code": exam_code,
+            "teacher_id": teacher_id
+        },
         {"_id": 0}
     )
 
@@ -41,7 +66,7 @@ def get_student_exam_result(usn, exam_code):
 
 
 # =====================================================
-# ✅ HELPER: Student Meta
+# ✅ HELPER: STUDENT META
 # =====================================================
 def _student_meta(usn):
     stu = db.students.find_one({"usn": usn})
@@ -62,14 +87,21 @@ def _student_meta(usn):
 
 
 # =====================================================
-# ✅ 3) CLASS RESULTS (JSON)
+# ✅ 3) CLASS RESULTS (JSON) – TEACHER SAFE
 # =====================================================
 @result.get("/class_results/<exam_code>")
 def class_results(exam_code):
+    teacher_id = auth_required(request)
+    if not teacher_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
     exam_code = exam_code.upper()
     rows = []
 
-    for r in db.results.find({"exam_code": exam_code}):
+    for r in db.results.find({
+        "exam_code": exam_code,
+        "teacher_id": teacher_id
+    }):
         meta = _student_meta(r["usn"])
 
         rows.append({
@@ -87,14 +119,21 @@ def class_results(exam_code):
 
 
 # =====================================================
-# ✅ 4) EXPORT CLASS RESULT → EXCEL
+# ✅ 4) EXPORT CLASS RESULT → EXCEL (SECURE)
 # =====================================================
 @result.get("/export_class/<exam_code>")
 def export_class(exam_code):
+    teacher_id = auth_required(request)
+    if not teacher_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
     exam_code = exam_code.upper()
     rows = []
 
-    for r in db.results.find({"exam_code": exam_code}):
+    for r in db.results.find({
+        "exam_code": exam_code,
+        "teacher_id": teacher_id
+    }):
         meta = _student_meta(r["usn"])
         rows.append([
             r["usn"],
@@ -112,7 +151,10 @@ def export_class(exam_code):
 
     df = pd.DataFrame(
         rows,
-        columns=["USN", "Name", "Department", "Batch", "Section", "Score", "Total", "Percentage"]
+        columns=[
+            "USN", "Name", "Department", "Batch",
+            "Section", "Score", "Total", "Percentage"
+        ]
     )
 
     os.makedirs("static", exist_ok=True)
@@ -123,27 +165,41 @@ def export_class(exam_code):
 
 
 # =====================================================
-# ✅ 5) ALL RESULTS (ADMIN / DEBUG)
+# ✅ 5) ALL RESULTS (DEBUG / ADMIN ONLY)
 # =====================================================
 @result.get("/all_results")
 def all_results():
-    rows = list(db.results.find({}, {"_id": 0}))
+    teacher_id = auth_required(request)
+    if not teacher_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    rows = list(db.results.find(
+        {"teacher_id": teacher_id},
+        {"_id": 0}
+    ))
+
     return jsonify({"results": rows}), 200
 
 
 # =====================================================
-# ✅ 6) PDF REPORT (STUDENT)
+# ✅ 6) PDF REPORT (STUDENT – TEACHER SAFE)
 # =====================================================
 @result.get("/pdf/<usn>/<exam_code>")
 def generate_pdf(usn, exam_code):
+    teacher_id = auth_required(request)
+    if not teacher_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
     from reportlab.pdfgen import canvas
 
     usn = usn.strip().upper()
     exam_code = exam_code.strip().upper()
 
-    data = db.results.find_one(
-        {"usn": usn, "exam_code": exam_code}
-    )
+    data = db.results.find_one({
+        "usn": usn,
+        "exam_code": exam_code,
+        "teacher_id": teacher_id
+    })
 
     if not data:
         return jsonify({"error": "Result not found"}), 404

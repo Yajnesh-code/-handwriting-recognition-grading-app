@@ -9,7 +9,7 @@ from bson import ObjectId
 auth = Blueprint("auth", __name__)
 
 # =====================================================
-# REGISTER TEACHER
+# ✅ REGISTER TEACHER
 # =====================================================
 @auth.post("/register")
 def register():
@@ -19,26 +19,27 @@ def register():
     if not all(k in data for k in required):
         return jsonify({"error": "Missing fields"}), 400
 
-    email = data["email"].lower()
+    email = data["email"].lower().strip()
 
-    # Check if user already exists
+    # ❌ Duplicate email check
     if users_col.find_one({"email": email}):
         return jsonify({"error": "Email already registered"}), 409
 
-    teacher = {
-        "name": data["name"],
-        "college_id": data["college_id"],
+    teacher_doc = {
+        "name": data["name"].strip(),
+        "college_id": data["college_id"].strip(),
         "email": email,
         "password_hash": generate_password_hash(data["password"]),
+        "role": "teacher"  # ✅ future-proofing
     }
 
-    users_col.insert_one(teacher)
+    users_col.insert_one(teacher_doc)
 
     return jsonify({"message": "Registered Successfully"}), 201
 
 
 # =====================================================
-# LOGIN TEACHER
+# ✅ LOGIN TEACHER
 # =====================================================
 @auth.post("/login")
 def login():
@@ -47,7 +48,7 @@ def login():
     if "email" not in data or "password" not in data:
         return jsonify({"error": "Email and password required"}), 400
 
-    email = data["email"].lower()
+    email = data["email"].lower().strip()
     teacher = users_col.find_one({"email": email})
 
     if not teacher:
@@ -56,14 +57,16 @@ def login():
     if not check_password_hash(teacher["password_hash"], data["password"]):
         return jsonify({"error": "Invalid Credentials"}), 401
 
+    # ✅ Create JWT with teacher_id
     token = create_token(str(teacher["_id"]))
 
     return jsonify({
         "token": token,
         "teacher": {
-            "id": str(teacher["_id"]),
+            "id": str(teacher["_id"]),          # 🔑 IMPORTANT
             "name": teacher["name"],
             "college_id": teacher["college_id"],
-            "email": teacher["email"]
+            "email": teacher["email"],
+            "role": teacher.get("role", "teacher")
         }
-    })
+    }), 200
