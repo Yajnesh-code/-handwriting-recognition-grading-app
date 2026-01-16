@@ -39,17 +39,19 @@ CORS(app)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://", "postgresql+psycopg://"
+    )
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 else:
-    # local fallback
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mcq_system.db"
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db.init_app(app)
 
 with app.app_context():
     db.create_all()
-
 # =====================================================
 # BLUEPRINTS
 # =====================================================
