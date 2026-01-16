@@ -2,13 +2,12 @@
 from pymongo import MongoClient
 import os
 
-MONGO_URI = os.getenv(
-    "MONGO_URI",
-    "mongodb+srv://mediconnect_user:Yajju%40897177@cluster0.kw0myb4.mongodb.net/?appName=Cluster0"
-)
+MONGO_URI = os.getenv("MONGO_URI")
+
+if not MONGO_URI:
+    raise RuntimeError("MONGO_URI environment variable not set")
 
 client = MongoClient(MONGO_URI)
-
 # DATABASE (auto-created)
 db = client["mcq_grading_db"]
 

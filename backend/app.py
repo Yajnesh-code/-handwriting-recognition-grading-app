@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import json
 from flask import Flask, request, jsonify, send_from_directory
@@ -14,6 +17,7 @@ from routes.exam_routes import exam
 from routes.result_routes import result
 
 from flask_cors import CORS
+
 
 # =====================================================
 # BASE DIRECTORY
