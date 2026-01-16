@@ -36,16 +36,11 @@ CORS(app)
 # =====================================================
 # DATABASE CONFIG (CLOUD-SAFE SQLITE)
 # =====================================================
-DATABASE_URL = os.getenv("DATABASE_URL")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-if DATABASE_URL:
-    DATABASE_URL = DATABASE_URL.replace(
-        "postgresql://", "postgresql+psycopg://"
-    )
-    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
-else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///mcq_system.db"
+db_path = os.path.join(BASE_DIR, "mcq_system.db")
 
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
