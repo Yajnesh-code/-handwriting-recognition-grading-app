@@ -79,3 +79,18 @@ def get_student(usn):
         "department": student_record.get("department", ""),
         "results": formatted_results
     }), 200
+
+
+# =====================================================
+# ✅ CHECK IF STUDENT EXISTS (REQUIRED FOR SCAN VALIDATION)
+# =====================================================
+@student.get("/exists/<usn>")
+def student_exists(usn):
+    usn = usn.strip().upper()
+
+    student = students_col.find_one({"usn": usn})
+
+    if not student:
+        return jsonify({"exists": False}), 404
+
+    return jsonify({"exists": True}), 200
