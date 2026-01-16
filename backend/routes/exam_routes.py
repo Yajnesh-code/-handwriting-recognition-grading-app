@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify
 from database import db
-from models.exam import Exam
-from models.answer_key import AnswerKey
 from utils.jwt_manager import decode_token
 
 exam = Blueprint("exam", __name__)
 
+# =====================================================
+# AUTH HELPER
+# =====================================================
 def auth_required(req):
     token = req.headers.get("Authorization", "").replace("Bearer ", "")
     try:
@@ -14,65 +15,82 @@ def auth_required(req):
         return None
 
 
-# ✅ Create an exam
+# =====================================================
+# ✅ CREATE EXAM
+# =====================================================
 @exam.post("/create")
 def create_exam():
     teacher_id = auth_required(request)
     if not teacher_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    data = request.get_json()
+    data = request.get_json() or {}
     exam_code = data.get("exam_code", "").upper().strip()
     subject = data.get("subject", "").strip()
 
     if not exam_code or not subject:
         return jsonify({"error": "exam_code and subject required"}), 400
 
-    if Exam.query.filter_by(exam_code=exam_code).first():
+    # Check duplicate exam
+    if db.exams.find_one({"exam_code": exam_code}):
         return jsonify({"error": "Exam already exists"}), 409
 
-    e = Exam(exam_code=exam_code, subject=subject, teacher_id=teacher_id)
-    db.session.add(e)
-    db.session.commit()
+    db.exams.insert_one({
+        "exam_code": exam_code,
+        "subject": subject,
+        "teacher_id": teacher_id
+    })
 
     return jsonify({"message": "Exam Created"}), 201
 
 
-# ✅ Save answer key (10 questions)
+# =====================================================
+# ✅ SAVE ANSWER KEY
+# =====================================================
 @exam.post("/save_key")
 def save_key():
     teacher_id = auth_required(request)
     if not teacher_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    data = request.get_json()
+    data = request.get_json() or {}
     exam_code = data.get("exam_code", "").upper().strip()
     answers = data.get("answer_key", {})
 
-    exam_obj = Exam.query.filter_by(exam_code=exam_code, teacher_id=teacher_id).first()
+    if not exam_code or not answers:
+        return jsonify({"error": "exam_code and answer_key required"}), 400
+
+    # Verify exam ownership
+    exam_obj = db.exams.find_one({
+        "exam_code": exam_code,
+        "teacher_id": teacher_id
+    })
+
     if not exam_obj:
         return jsonify({"error": "Exam not found or unauthorized"}), 404
 
-    # Clear old key
-    AnswerKey.query.filter_by(exam_id=exam_obj.id).delete()
+    # Remove old key (if any)
+    db.answer_keys.delete_many({"exam_code": exam_code})
 
-    # Save new key
-    for q, opt in answers.items():
-        db.session.add(AnswerKey(exam_id=exam_obj.id, question_no=q, correct_option=opt))
+    # Insert new key
+    db.answer_keys.insert_one({
+        "exam_code": exam_code,
+        "answer_key": answers
+    })
 
-    db.session.commit()
     return jsonify({"message": "Answer Key Saved"}), 200
 
 
-# ✅ Get existing key
+# =====================================================
+# ✅ GET ANSWER KEY
+# =====================================================
 @exam.get("/get_key/<exam_code>")
 def get_key(exam_code):
-    exam_code = exam_code.upper()
-    exam_obj = Exam.query.filter_by(exam_code=exam_code).first()
-    if not exam_obj:
-        return jsonify({"error": "Exam not found"}), 404
+    exam_code = exam_code.upper().strip()
 
-    key = AnswerKey.query.filter_by(exam_id=exam_obj.id).all()
-    result = {k.question_no: k.correct_option for k in key}
+    key_doc = db.answer_keys.find_one({"exam_code": exam_code})
 
-    return jsonify({"answer_key": result})
+    if not key_doc:
+        return jsonify({"answer_key": {}}), 200
+
+    return jsonify({"answer_key": key_doc["answer_key"]}), 200
