@@ -22,11 +22,11 @@ LETTERS_MODEL_PATH = os.path.join(
 
 DEBUG_SAVE_DIR = os.path.join(BASE_DIR, "debug_crops")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
-ANSWER_KEY_DIR = os.path.join(BASE_DIR, "answer_keys")
+
 
 os.makedirs(DEBUG_SAVE_DIR, exist_ok=True)
 os.makedirs(STATIC_DIR, exist_ok=True)
-os.makedirs(ANSWER_KEY_DIR, exist_ok=True)
+
 
 DIGIT_CLASS_NAMES = [str(i) for i in range(10)]
 LETTER_CLASS_NAMES = ['A', 'B', 'C', 'D']
@@ -75,12 +75,7 @@ def load_models():
 # =====================================================
 # LOAD ANSWER KEY
 # =====================================================
-def load_answer_key(exam_code):
-    path = os.path.join(ANSWER_KEY_DIR, f"{exam_code}.json")
-    if not os.path.exists(path):
-        return None
-    with open(path, "r") as f:
-        return json.load(f)
+
 
 # =====================================================
 # HELPER FUNCTIONS (UNCHANGED LOGIC)
@@ -144,12 +139,11 @@ def two_cluster_x(centers_x, iters=8):
 # =====================================================
 # MAIN PROCESSING FUNCTION (UNCHANGED LOGIC)
 # =====================================================
-def process_mcq_image(PAGE_IMAGE_PATH, exam_code):
+def process_mcq_image(PAGE_IMAGE_PATH, answer_key):
+
     load_models()
 
-    answer_key = load_answer_key(exam_code)
-    if answer_key is None:
-        return {"error": f"No answer key found for exam_code '{exam_code}'"}
+   
 
     image = cv2.imread(PAGE_IMAGE_PATH)
     if image is None:

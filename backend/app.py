@@ -8,9 +8,8 @@ from datetime import datetime
 from utils.jwt_manager import decode_token
 
 from mcq_recognition import process_mcq_image
-
-# DB + ROUTES
 from database import db
+
 from routes.auth_routes import auth
 from routes.student_routes import student
 from routes.exam_routes import exam
@@ -59,7 +58,7 @@ def health():
     return jsonify({"status": "ok"})
 
 # =====================================================
-# GRADE EXAM  ✅ (CORE LOGIC)
+# GRADE EXAM  ✅ (FINAL FIXED VERSION)
 # =====================================================
 @app.post("/grade")
 def grade_exam():
@@ -72,14 +71,14 @@ def grade_exam():
     if not usn or not exam_code:
         return jsonify({"error": "usn and exam_code required"}), 400
 
-    # 🔐 Validate token ONLY for access
+    # 🔐 AUTH (ONLY VALIDATE TOKEN)
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     try:
         decode_token(token)
     except:
         return jsonify({"error": "Unauthorized"}), 401
 
-    # ✅ FETCH ANSWER KEY BY EXAM CODE ONLY
+    # ✅ FETCH ANSWER KEY FROM MONGODB (ONLY ONCE)
     key_doc = db.answer_keys.find_one({"exam_code": exam_code})
     if not key_doc:
         return jsonify({"error": "Answer key not found"}), 404
@@ -91,15 +90,22 @@ def grade_exam():
     file_path = os.path.join(UPLOAD_FOLDER, secure_filename(file.filename))
     file.save(file_path)
 
-    results = process_mcq_image(file_path, exam_code)
+    # ✅ PASS ANSWER KEY DIRECTLY
+    results = process_mcq_image(
+    file_path,
+    key_doc["answer_key"]
+)
+
+
     if "error" in results:
         return jsonify(results), 400
 
+    # METADATA
     results["usn"] = usn
     results["exam_code"] = exam_code
-    results["answer_key"] = key_doc["answer_key"]
     results["timestamp"] = datetime.utcnow()
 
+    # SAVE RESULT
     db.results.replace_one(
         {"usn": usn, "exam_code": exam_code},
         results,
@@ -107,7 +113,6 @@ def grade_exam():
     )
 
     return jsonify(results), 200
-
 
 # =====================================================
 # STATIC FILES
