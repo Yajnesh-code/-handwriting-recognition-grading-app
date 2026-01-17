@@ -71,14 +71,15 @@ def grade_exam():
     if not usn or not exam_code:
         return jsonify({"error": "usn and exam_code required"}), 400
 
-    # 🔐 AUTH (ONLY VALIDATE TOKEN)
+    # 🔐 AUTH – decode ONCE
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     try:
-        decode_token(token)
+        decoded = decode_token(token)
+        teacher_id = decoded["teacher_id"]
     except:
         return jsonify({"error": "Unauthorized"}), 401
 
-    # ✅ FETCH ANSWER KEY FROM MONGODB (ONLY ONCE)
+    # ✅ FETCH ANSWER KEY
     key_doc = db.answer_keys.find_one({"exam_code": exam_code})
     if not key_doc:
         return jsonify({"error": "Answer key not found"}), 404
@@ -90,29 +91,32 @@ def grade_exam():
     file_path = os.path.join(UPLOAD_FOLDER, secure_filename(file.filename))
     file.save(file_path)
 
-    # ✅ PASS ANSWER KEY DIRECTLY
+    # ✅ PROCESS IMAGE (PASS ANSWER KEY DIRECTLY)
     results = process_mcq_image(
-    file_path,
-    key_doc["answer_key"]
-)
-
+        file_path,
+        key_doc["answer_key"]
+    )
 
     if "error" in results:
         return jsonify(results), 400
 
-    # METADATA
-    results["usn"] = usn
-    results["exam_code"] = exam_code
-    results["timestamp"] = datetime.utcnow()
+    # ✅ FINAL RESULT DOCUMENT
+    final_result = {
+        **results,
+        "usn": usn,
+        "exam_code": exam_code,
+        "teacher_id": teacher_id,
+        "timestamp": datetime.utcnow()
+    }
 
-    # SAVE RESULT
+    # ✅ SAVE / UPDATE RESULT
     db.results.replace_one(
         {"usn": usn, "exam_code": exam_code},
-        results,
+        final_result,
         upsert=True
     )
 
-    return jsonify(results), 200
+    return jsonify(final_result), 200
 
 # =====================================================
 # STATIC FILES
