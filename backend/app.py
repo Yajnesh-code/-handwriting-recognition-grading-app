@@ -71,7 +71,7 @@ def grade_exam():
     if not usn or not exam_code:
         return jsonify({"error": "usn and exam_code required"}), 400
 
-    # ✅ Get answer key from MongoDB
+    # ✅ FIXED: fetch answer key correctly
     key_doc = db.answer_keys.find_one({"exam_code": exam_code})
     if not key_doc:
         return jsonify({"error": "Answer key not found"}), 404
@@ -87,16 +87,11 @@ def grade_exam():
     if "error" in results:
         return jsonify(results), 400
 
-    # ✅ ATTACH METADATA
     results["usn"] = usn
     results["exam_code"] = exam_code
-
-    # ✅ FIXED FIELD NAME (CRITICAL FIX)
     results["answer_key"] = key_doc["answer_key"]
-
     results["timestamp"] = datetime.utcnow()
 
-    # ✅ SAVE RESULT TO MONGODB
     db.results.replace_one(
         {"usn": usn, "exam_code": exam_code},
         results,
@@ -104,6 +99,7 @@ def grade_exam():
     )
 
     return jsonify(results), 200
+
 
 # =====================================================
 # STATIC FILES
