@@ -13,6 +13,11 @@ result = Blueprint("result", __name__)
 # =====================================================
 def auth_required(req):
     token = req.headers.get("Authorization", "").replace("Bearer ", "")
+
+    # ✅ allow token via query (Excel / PDF)
+    if not token:
+        token = req.args.get("token", "")
+
     try:
         return decode_token(token)["teacher_id"]
     except:
@@ -186,20 +191,17 @@ def all_results():
 # =====================================================
 @result.get("/pdf/<usn>/<exam_code>")
 def generate_pdf(usn, exam_code):
-    teacher_id = auth_required(request)
-    if not teacher_id:
-        return jsonify({"error": "Unauthorized"}), 401
-
+    
     from reportlab.pdfgen import canvas
 
     usn = usn.strip().upper()
     exam_code = exam_code.strip().upper()
 
     data = db.results.find_one({
-        "usn": usn,
-        "exam_code": exam_code,
-        "teacher_id": teacher_id
-    })
+    "usn": usn,
+    "exam_code": exam_code
+})
+
 
     if not data:
         return jsonify({"error": "Result not found"}), 404
