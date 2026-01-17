@@ -71,8 +71,19 @@ def grade_exam():
     if not usn or not exam_code:
         return jsonify({"error": "usn and exam_code required"}), 400
 
-    # ✅ FIXED: fetch answer key correctly
-    key_doc = db.answer_keys.find_one({"exam_code": exam_code})
+    # 🔐 OPTIONAL BUT STRONGLY RECOMMENDED
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    try:
+        teacher_id = decode_token(token)["teacher_id"]
+    except:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # ✅ CORRECT ANSWER KEY FETCH
+    key_doc = db.answer_keys.find_one({
+        "exam_code": exam_code,
+        "teacher_id": teacher_id
+    })
+
     if not key_doc:
         return jsonify({"error": "Answer key not found"}), 404
 
@@ -91,6 +102,7 @@ def grade_exam():
     results["exam_code"] = exam_code
     results["answer_key"] = key_doc["answer_key"]
     results["timestamp"] = datetime.utcnow()
+    results["teacher_id"] = teacher_id
 
     db.results.replace_one(
         {"usn": usn, "exam_code": exam_code},
@@ -99,7 +111,6 @@ def grade_exam():
     )
 
     return jsonify(results), 200
-
 
 # =====================================================
 # STATIC FILES
