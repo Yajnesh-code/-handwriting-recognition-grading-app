@@ -5,6 +5,7 @@ import os
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from utils.jwt_manager import decode_token
 
 from mcq_recognition import process_mcq_image
 
